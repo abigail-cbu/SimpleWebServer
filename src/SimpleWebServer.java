@@ -17,18 +17,26 @@ import java.util.*; // StringTokenizer
 
 public class SimpleWebServer {
 
+    // VARIABLES
     /* Run the HTTP server on this TCP port. */
     private static final int PORT = 8080;
 
     /* The socket used to process incoming connections from web clients */
     private static ServerSocket dServerSocket;
 
+
+    // CONSTRUCTOR
     public SimpleWebServer() throws Exception {
         dServerSocket = new ServerSocket(PORT); // from java.net.*
     }
 
+    // METHODS
+    /**
+     * Starts Web Server and waits until client connects to web server
+     * before starting to process their request
+     * @throws Exception
+     */
     public void run() throws Exception {
-
         // wait until client connects to localhost:8080 in a browser
         // and connect to web server
         while (true) {
@@ -41,8 +49,7 @@ public class SimpleWebServer {
 
     /**
      * Processes HTTP request from client and responds with the file the user requested
-     * or a HTTP error coce
-     *
+     * or a HTTP error code
      * @param s
      * @throws Exception
      */
@@ -85,7 +92,6 @@ public class SimpleWebServer {
 
     /**
      * GET file from disk and serve to client
-     *
      * @param osw
      * @param pathname
      * @throws Exception
@@ -100,17 +106,16 @@ public class SimpleWebServer {
         if (pathname.charAt(0) == '/')
             pathname = pathname.substring(1);
 
- 	/* if there was no filename specified by the
-        client, serve the "index.html" file */
+// default file to server = index.html
         if (pathname.equals(""))
             pathname = "index.html";
 
  	/* try to open file specified by pathname */
         try {
-            fr = new FileReader(pathname); // from java.io.*
+            fr = new FileReader(checkPath(pathname)); // from java.io.*
             c = fr.read();
         } catch (Exception e) {
- 	    /* if the file is not found,return the
+         /* if the file is not found,return the
  	       appropriate HTTP response code  */
             osw.write("HTTP/1.0 404 Not Found\n\n");
             return;
@@ -125,6 +130,25 @@ public class SimpleWebServer {
             c = fr.read();
         }
         osw.write(sb.toString());
+    }
+
+    /**
+     * Used to handle different paths and prevent clients from
+     * accessing files above root folder
+     * example: GET ../../../../etc/shadow HTTP/1.0
+     * @param pathname
+     * @return
+     * @throws Exception
+     */
+    String checkPath(String pathname) throws Exception {
+        File target = new File(pathname);
+        File cwd = new File(System.getProperty("user.dir")); // get current directory of pathname
+        String targetStr = target.getCanonicalPath(); // normalize pathname
+        String cwdStr = cwd.getCanonicalPath();
+        if (!targetStr.startsWith(cwdStr)) // check if file exist in current directory
+            throw new Exception("File Not Found");
+        else
+            return targetStr;
     }
 
     /* This method is called when the program is run from
