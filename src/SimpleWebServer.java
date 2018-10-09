@@ -11,9 +11,9 @@
  * Description: CSC 513 SimpleWebServer Project
  */
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.*; //  BufferedReader, InputStreamReader, OutputStreamWriter, FileReader
+import java.net.*; // ServerSocket and Socket
+import java.util.*; // StringTokenizer
 
 public class SimpleWebServer {
 
@@ -24,16 +24,18 @@ public class SimpleWebServer {
     private static ServerSocket dServerSocket;
 
     public SimpleWebServer() throws Exception {
-        dServerSocket = new ServerSocket(PORT);
+        dServerSocket = new ServerSocket(PORT); // from java.net.*
     }
 
     public void run() throws Exception {
+
+        // wait until client connects to localhost:8080 in a browser
+        // and connect to web server
         while (true) {
-         /* wait for a connection from a client */
-            Socket s = dServerSocket.accept();
+            Socket s = dServerSocket.accept();  // from java.net.*
 
  	    /* then process the client's request */
-            processRequest(s);
+            processRequest(s); // go straight here after browser is open and client is linked
         }
     }
 
@@ -46,44 +48,33 @@ public class SimpleWebServer {
      */
     public void processRequest(Socket s) throws Exception {
      /* used to read data from the client */
-        BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream())); // from java.io.*
 
  	    /* used to write data to the client */
-        OutputStreamWriter osw = new OutputStreamWriter(s.getOutputStream());
+        OutputStreamWriter osw = new OutputStreamWriter(s.getOutputStream()); // from java.io.*
 
-        /* Read the HTTP request from the client. */
+        // grab the 2 tokens, or GET request parameters, from HTTP request to find the file to server
+        // however, only handles 2 tokens
         String request = br.readLine();
         String command = null;
         String pathname = null;
 
-        // to handle blank lines from GET
+        // bad request if contains blank lines or less than 2 tokens
         try {
-            /* Parse the HTTP request. */
-            StringTokenizer st = new StringTokenizer(request, " ");
-            command = st.nextToken();
-            pathname = st.nextToken();
+            StringTokenizer st = new StringTokenizer(request, " "); // from java.util.*
+            command = st.nextToken(); // 1st param: get the HTTP request (GET, PUT, etc.)
+            pathname = st.nextToken(); // 2nd param: get the file client wants served
         } catch (Exception e) {
-            // if an exception occurred, return error to client right away
+            // if an exception occurred, close stream writer and return error to client right away
             osw.write("HTTP/1.0 400 Bad Request\n\n");
             osw.close();
             return;
         }
 
- 	/* parse the HTTP request */
-        StringTokenizer st = new StringTokenizer(request, " ");
-
-        command = st.nextToken();
-        pathname = st.nextToken();
-
+        // only allow GET requests to pass through
         if (command.equals("GET")) {
-        /* if the request is a GET
-           try to respond with the file
-	       the user is requesting */
             serveFile(osw, pathname);
         } else {
-        /* if the request is a NOT a GET,
-           return an error saying this server
-	       does not implement the requested command */
             osw.write("HTTP/1.0 501 Not Implemented\n\n");
         }
 
@@ -110,13 +101,13 @@ public class SimpleWebServer {
             pathname = pathname.substring(1);
 
  	/* if there was no filename specified by the
- 	   client, serve the "index.html" file */
+        client, serve the "index.html" file */
         if (pathname.equals(""))
             pathname = "index.html";
 
  	/* try to open file specified by pathname */
         try {
-            fr = new FileReader(pathname);
+            fr = new FileReader(pathname); // from java.io.*
             c = fr.read();
         } catch (Exception e) {
  	    /* if the file is not found,return the
