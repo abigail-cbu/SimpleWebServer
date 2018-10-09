@@ -24,6 +24,8 @@ public class SimpleWebServer {
     /* The socket used to process incoming connections from web clients */
     private static ServerSocket dServerSocket;
 
+    private static final int MAX_DOWNLOAD_LIMIT = 10000;
+
 
     // CONSTRUCTOR
     public SimpleWebServer() throws Exception {
@@ -31,9 +33,11 @@ public class SimpleWebServer {
     }
 
     // METHODS
+
     /**
      * Starts Web Server and waits until client connects to web server
      * before starting to process their request
+     *
      * @throws Exception
      */
     public void run() throws Exception {
@@ -50,6 +54,7 @@ public class SimpleWebServer {
     /**
      * Processes HTTP request from client and responds with the file the user requested
      * or a HTTP error code
+     *
      * @param s
      * @throws Exception
      */
@@ -92,50 +97,44 @@ public class SimpleWebServer {
 
     /**
      * GET file from disk and serve to client
+     *
      * @param osw
      * @param pathname
      * @throws Exception
      */
     public void serveFile(OutputStreamWriter osw, String pathname) throws Exception {
+        // NEW WAY
         FileReader fr = null;
         int c = -1;
-        StringBuffer sb = new StringBuffer();
+        int sentBytes = 0;
 
- 	/* remove the initial slash at the beginning
-        of the pathname in the request */
-        if (pathname.charAt(0) == '/')
-            pathname = pathname.substring(1);
-
-// default file to server = index.html
-        if (pathname.equals(""))
-            pathname = "index.html";
-
- 	/* try to open file specified by pathname */
+        /* Try to open file specified by pathname */
         try {
-            fr = new FileReader(checkPath(pathname)); // from java.io.*
+            fr = new FileReader(pathname); // from java.io.*
             c = fr.read();
         } catch (Exception e) {
-         /* if the file is not found,return the
- 	       appropriate HTTP response code  */
-            osw.write("HTTP/1.0 404 Not Found\n\n");
+        /* If the file is not found, return the
+        appropriate HTTP response code. */
+            osw.write("HTTP/1.0 404 Not Found");
             return;
         }
 
- 	/* if the requested file can be successfully opened
- 	   and read, then return an OK response code and
- 	   send the contents of the file */
-        osw.write("HTTP/1.0 200 OK\n\n");
-        while (c != -1) {
-            sb.append((char) c);
+        /* If the requested file can be successfully opened
+        and read, then return an OK response code and
+        send the contents of the file. */
+        osw.write("HTTP/1.0 200 OK");
+        while ((c != -1) && (sentBytes < MAX_DOWNLOAD_LIMIT)) { // prevent big files from being served to client
+            osw.write(c);
+            sentBytes++;
             c = fr.read();
         }
-        osw.write(sb.toString());
     }
 
     /**
      * Used to handle different paths and prevent clients from
      * accessing files above root folder
      * example: GET ../../../../etc/shadow HTTP/1.0
+     *
      * @param pathname
      * @return
      * @throws Exception
