@@ -43,10 +43,12 @@ public class SimpleWebServer {
     public void run() throws Exception {
         // wait until client connects to localhost:8080 in a browser
         // and connect to web server
+        System.out.println("Looking for socket to connect to.");
         while (true) {
             Socket s = dServerSocket.accept();  // from java.net.*
 
- 	    /* then process the client's request */
+            System.out.println("Connected to socket: " + s.getLocalPort());
+         /* then process the client's request */
             processRequest(s); // go straight here after browser is open and client is linked
         }
     }
@@ -59,6 +61,7 @@ public class SimpleWebServer {
      * @throws Exception
      */
     public void processRequest(Socket s) throws Exception {
+        System.out.println("In processRequest...");
      /* used to read data from the client */
         BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream())); // from java.io.*
 
@@ -75,8 +78,12 @@ public class SimpleWebServer {
         try {
             StringTokenizer st = new StringTokenizer(request, " "); // from java.util.*
             command = st.nextToken(); // 1st param: get the HTTP request (GET, PUT, etc.)
+            System.out.println("command: " + command);
+
             pathname = st.nextToken(); // 2nd param: get the file client wants served
+            System.out.println("pathname: " + pathname);
         } catch (Exception e) {
+            System.out.println(e.getMessage());
             // if an exception occurred, close stream writer and return error to client right away
             osw.write("HTTP/1.0 400 Bad Request\n\n");
             osw.close();
@@ -103,11 +110,22 @@ public class SimpleWebServer {
      * @throws Exception
      */
     public void serveFile(OutputStreamWriter osw, String pathname) throws Exception {
-        // NEW WAY
+        System.out.println("In serveFile() with pathname: " + pathname);
         FileReader fr = null;
         int c = -1;
         int sentBytes = 0;
 
+        /* remove the initial slash at the beginning
+        of the pathname in the request */
+        if (pathname.charAt(0) == '/')
+            pathname = pathname.substring(1);
+
+ 	/* if there was no filename specified by the
+ 	   client, serve the "index.html" file */
+        if (pathname.equals(""))
+            pathname = "index.html";
+
+        System.out.println("newPathname: " + pathname);
         /* Try to open file specified by pathname */
         try {
             fr = new FileReader(pathname); // from java.io.*
@@ -115,6 +133,7 @@ public class SimpleWebServer {
         } catch (Exception e) {
         /* If the file is not found, return the
         appropriate HTTP response code. */
+            System.out.println(e.getMessage());
             osw.write("HTTP/1.0 404 Not Found");
             return;
         }
@@ -154,6 +173,7 @@ public class SimpleWebServer {
        the command line. */
     public static void main(String argv[]) throws Exception {
 
+        System.out.println("Starting SimpleWebServer.java");
  	/* Create a SimpleWebServer object, and run it */
         SimpleWebServer sws = new SimpleWebServer();
         sws.run();
