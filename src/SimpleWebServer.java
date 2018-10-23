@@ -4,10 +4,9 @@
  * This toy web server is used to illustrate security vulnerabilities.
  * This web server only supports extremely simple HTTP GET requests.
  * <p>
- * This file is also available at http://www.learnsecurity.com/ntk
- * <p>
  * Author: Abigail Lu
  * Date: 10/08/2018
+ * Updated: 10/22/2018
  * Description: CSC 513 SimpleWebServer Project
  */
 
@@ -26,6 +25,7 @@ public class SimpleWebServer {
 
     private static final int MAX_DOWNLOAD_LIMIT = 10000;
 
+    private static final String ROOT_DIRECTORY = "/Users/abigaillu/IntelliJProjects/Java/SimpleWebServer/";
 
     // CONSTRUCTOR
     public SimpleWebServer() throws Exception {
@@ -120,14 +120,15 @@ public class SimpleWebServer {
         if (pathname.charAt(0) == '/')
             pathname = pathname.substring(1);
 
- 	/* if there was no filename specified by the
- 	   client, serve the "index.html" file */
+ 	    /* if there was no filename specified by the
+        client, serve the "index.html" file */
         if (pathname.equals(""))
             pathname = "index.html";
 
         System.out.println("newPathname: " + pathname);
         /* Try to open file specified by pathname */
         try {
+            pathname = checkPath(pathname); // check path so hackers cannot access root folder
             fr = new FileReader(pathname); // from java.io.*
             c = fr.read();
         } catch (Exception e) {
@@ -151,22 +152,56 @@ public class SimpleWebServer {
 
     /**
      * Used to handle different paths and prevent clients from
-     * accessing files above root folder
+     * accessing files in root folder.
+     * Prevents 'directory attack'
      * example: GET ../../../../etc/shadow HTTP/1.0
      *
      * @param pathname
      * @return
      * @throws Exception
      */
-    String checkPath(String pathname) throws Exception {
+    public String checkPath(String pathname) throws Exception {
         File target = new File(pathname);
         File cwd = new File(System.getProperty("user.dir")); // get current directory of pathname
+
+        // 10/21/2018: Ch. 4 HW: updated to use my own getCanonicalPath method
         String targetStr = target.getCanonicalPath(); // normalize pathname
         String cwdStr = cwd.getCanonicalPath();
-        if (!targetStr.startsWith(cwdStr)) // check if file exist in current directory
+
+        targetStr = getCanonicalPath(target.getPath());
+
+        // 10/22/2018: no longer needs do this check because pathname is now always starting at ROOT_DIRECTORY
+        if (targetStr.isEmpty()) // check if file exist in current directory
             throw new Exception("File Not Found");
         else
             return targetStr;
+    }
+
+    /**
+     * Used to normalize a path and ensures that the pathname is an absolute path.
+     * This method should be written like java.io.File.getCanonicalPath().
+     * Only get access to files in SimpleWebServer folder files.
+     *
+     * @param pathname
+     * @return absolute path or an IOException if they path cannot be normalized
+     * @throws Exception
+     */
+    public String getCanonicalPath(String pathname) throws IOException {
+        String newPathName = "";
+
+        List<String> directories = Arrays.asList(pathname.split("/"));
+
+        for (int i = 0; i < directories.size(); i++) {
+            if (directories.get(i).equals("..") || directories.get(i).equals(".")) {
+                directories.remove(i); // normalize pathname
+            }
+        }
+
+        if (!directories.isEmpty()) {
+            newPathName = ROOT_DIRECTORY + String.join("/", directories);
+        }
+
+        return newPathName;
     }
 
     /* This method is called when the program is run from
@@ -174,7 +209,7 @@ public class SimpleWebServer {
     public static void main(String argv[]) throws Exception {
 
         System.out.println("Starting SimpleWebServer.java");
- 	/* Create a SimpleWebServer object, and run it */
+     /* Create a SimpleWebServer object, and run it */
         SimpleWebServer sws = new SimpleWebServer();
         sws.run();
     }
